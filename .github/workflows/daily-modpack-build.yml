@@ -217,16 +217,14 @@ jobs:
       - name: Unpack build artifacts
         run: |
           set -euo pipefail
-          mkdir -p /tmp/${{ env.WORK_DIR }}/server
-          unzip -o "GTNH-daily-${{ needs.build.outputs.today }}-${{ matrix.server-zip-variant }}.zip" -d /tmp/${{ env.WORK_DIR }}/server
-          chmod -R u+rX /tmp/${{ env.WORK_DIR }}/server
-          mkdir -p /tmp/${{ env.WORK_DIR }}/client
+          mkdir -p ${{ env.WORK_DIR }}/server
+          unzip -o "GTNH-daily-${{ needs.build.outputs.today }}-${{ matrix.server-zip-variant }}.zip" -d ${{ env.WORK_DIR }}/server
+          chmod -R u+rX ${{ env.WORK_DIR }}/server
+          mkdir -p ${{ env.WORK_DIR }}/client
           unzip -o "GTNH-daily-${{ needs.build.outputs.today }}-${{ matrix.client-zip-variant }}.zip" -d /tmp/client-unpacked
-          ls -lah /tmp/client-unpacked
           inner_dir=$(find /tmp/client-unpacked -mindepth 1 -maxdepth 1 -type d | head -n1)
           chmod -R u+rX "$inner_dir"
-          cp -r "$inner_dir/." /tmp/${{ env.WORK_DIR }}/client
-          ls -lah /tmp/${{ env.WORK_DIR }}/client
+          cp -r "$inner_dir/." ${{ env.WORK_DIR }}/client
 
       - name: Install Java
         uses: actions/setup-java@dded0888837ed1f317902acf8a20df0ad188d165

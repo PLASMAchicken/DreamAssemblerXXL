@@ -276,6 +276,8 @@ jobs:
 
       - name: Run client
         timeout-minutes: 10
+        env: 
+          XDG_DATA_HOME: ${{ env.WORK_DIR }}/run
         run: bash scripts/tests/orchestrator.sh run-client
 
       - name: Stop server

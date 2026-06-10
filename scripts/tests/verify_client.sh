@@ -25,8 +25,8 @@ echo "client exit code: $exit_code"
 [ "$exit_code" = "0" ] || rc=1
 
 # Progress markers dropped by HeadlessNH as the client reaches each stage
-for marker in $CLIENT_LOADED_FLAG $CLIENT_JOINED_FLAG $CLIENT_SINGLEP_FLAG; do
-  if [ ! -e "$RUN_DIR/$marker" ]; then
+for marker in "$CLIENT_LOADED_FLAG" "$CLIENT_JOINED_FLAG" "$CLIENT_SINGLEP_FLAG"; do
+  if [ ! -e "$marker" ]; then
     echo "headlessnh marker missing: $marker -- client never reached the stage?"
     rc=1
   fi
@@ -52,6 +52,7 @@ fi
 
 if [ -r "$CLIENT_LOG" ]; then
   # idk can't find anything that we want to heck the logs for, but would do it here
+  echo ""
 else
   echo "client log missing or unreadable: $CLIENT_LOG"
   rc=1

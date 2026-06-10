@@ -50,7 +50,8 @@ watch_markers() {
 run_client() {
   [ -e "$SERVER_READY_FLAG" ] || { echo "server never signalled ready"; exit 1; }
 
-  DISPLAY=":${DISPLAY_NUM:-99}" watch_markers &
+  export DISPLAY=":${DISPLAY_NUM:-99}"
+  watch_markers &
   local watcher_pid=$!
 
   local rc=0

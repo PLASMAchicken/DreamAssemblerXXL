@@ -17,10 +17,18 @@ RCON_HOST="${RCON_HOST:-localhost}"
 RCON_PORT="${RCON_PORT:-25575}"
 RCON_PASSWORD="${RCON_PASSWORD:?RCON_PASSWORD must be set}"
 
+TAIL_PID=""
+
+cleanup() {
+  [ -n "$TAIL_PID" ] && kill "$TAIL_PID" 2>/dev/null
+}
+
 start() {
   local java_args="${SERVER_JAVA_ARGS:?SERVER_JAVA_ARGS must be set}"
   local start_timeout="${SERVER_START_TIMEOUT:-240}"
   local settle_duration="${SERVER_SETTLE_DURATION:-30}"
+
+  trap cleanup EXIT INT TERM
 
   cd "$SERVER_DIR"
   sed -i 's|eula=false|eula=true|g' eula.txt
@@ -30,12 +38,15 @@ start() {
   # keeps running into the next steps.
   bash "$SCRIPT_DIR/run_with_exit.sh" "$SERVER_EXIT_FLAG" java $java_args > "$SERVER_LOG" 2>&1 &
 
+  tail -n +1 -F "$SERVER_LOG" 2>/dev/null &
+  TAIL_PID=$!
+
   local waited=0
   while [ "$waited" -lt "$start_timeout" ]; do
     if grep -q 'Done.*For help, type' "$SERVER_LOG" 2>/dev/null; then
       echo "server started after ${waited}s"
       echo "waiting ${settle_duration}s for server to settle..."
-      sleep $SETTLE_TIMEOUT
+      sleep $settle_duration
 
        if [ -e "$SERVER_EXIT_FLAG" ]; then
         echo "server exited during settling (code $(cat "$SERVER_EXIT_FLAG"))"

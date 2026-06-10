@@ -268,7 +268,7 @@ jobs:
         run: |
           set -euo pipefail
           curl -sSL -o headlessnh-1.0.1.jar https://github.com/MalTeeez/HeadlessNH/releases/download/1.0.1/headlessnh-1.0.1.jar
-          echo "7c0c53eddd5d12c6f10dafa515dfb139eac26e4f07de19e270826e7893b8d14a  headlessnh-1.0.1.jar " | sha256sum -c -
+          echo "7c0c53eddd5d12c6f10dafa515dfb139eac26e4f07de19e270826e7893b8d14a  headlessnh-1.0.1.jar" | sha256sum -c -
 
       - name: Start server
         timeout-minutes: 10

@@ -8,7 +8,7 @@ set -uo pipefail
 shopt -s nullglob
 
 RUN_DIR="${RUN_DIR:?RUN_DIR must be set}"
-CLIENT_DIR="${CLIENT_DIR:?CLIENT_DIR must be set}"
+CLIENT_MC_DIR="${CLIENT_MC_DIR:?CLIENT_MC_DIR must be set}"
 
 CLIENT_LOG="$RUN_DIR/client.log"
 CLIENT_EXIT_FLAG="$RUN_DIR/client.exit"
@@ -33,7 +33,7 @@ for marker in "$CLIENT_LOADED_FLAG" "$CLIENT_JOINED_FLAG" "$CLIENT_SINGLEP_FLAG"
 done
 
 # Crash reports
-crash_reports=("$CLIENT_DIR/crash-reports/crash"*.txt)
+crash_reports=("$CLIENT_MC_DIR/crash-reports/crash"*.txt)
 if [ "${#crash_reports[@]}" -gt 0 ]; then
   latest_crash_report="${crash_reports[-1]}"
   echo "latest crash report detected ${latest_crash_report##*/}:"
@@ -42,7 +42,7 @@ if [ "${#crash_reports[@]}" -gt 0 ]; then
 fi
 
 # JVM fatal error logs
-hs_err_logs=("$CLIENT_DIR/hs_err_pid"*.log)
+hs_err_logs=("$CLIENT_MC_DIR/hs_err_pid"*.log)
 if [ "${#hs_err_logs[@]}" -gt 0 ]; then
   latest_hs_err="${hs_err_logs[-1]}"
   echo "JVM fatal error log detected ${latest_hs_err##*/}:"

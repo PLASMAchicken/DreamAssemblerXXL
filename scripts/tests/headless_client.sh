@@ -144,6 +144,11 @@ while kill -0 -- "-$GAME_PGID" 2>/dev/null; do
     echo "game exceeded ${CLIENT_RUN_TIMEOUT}s -- closing it"
     break
   fi
+
+  if [ -n "$(ls -A "$CLIENT_MC_DIR/crash-reports" 2>/dev/null)" ]; then
+    echo "client crash report found but game is still running -- ending early"
+    break
+  fi
   sleep 1
 done
 

@@ -267,8 +267,8 @@ jobs:
         working-directory: ${{ env.WORK_DIR }}/client/.minecraft/mods
         run: |
           set -euo pipefail
-          curl -sSL -o headlessnh-1.0.1.jar https://github.com/MalTeeez/HeadlessNH/releases/download/1.0.1/headlessnh-1.0.1.jar
-          echo "7c0c53eddd5d12c6f10dafa515dfb139eac26e4f07de19e270826e7893b8d14a  headlessnh-1.0.1.jar" | sha256sum -c -
+          curl -sSL -o headlessnh-1.0.2.jar https://github.com/MalTeeez/HeadlessNH/releases/download/1.0.2/headlessnh-1.0.2.jar
+          echo "725148571ad3332090b8f1bc286ed55dc9b6eba3bc4a2413f0c2d256c43a054b  headlessnh-1.0.2.jar" | sha256sum -c -
 
       - name: Start server
         timeout-minutes: 10
@@ -299,6 +299,7 @@ jobs:
           name: test-java${{ matrix.java-version }}
           path: ${{ env.WORK_DIR }}/run/client.mp4
           if-no-files-found: ignore
+          archive: false
 
       - name: Upload client screenshots
         id: upload-screenshots

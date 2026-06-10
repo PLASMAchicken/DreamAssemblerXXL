@@ -9,6 +9,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 WORK_DIR="${WORK_DIR:?WORK_DIR must be set}"
 CLIENT_DIR="${CLIENT_DIR:-$WORK_DIR/client}"
+CLIENT_MC_DIR="${CLIENT_MC_DIR:-$CLIENT_DIR/.minecraft}"
 SERVER_DIR="${SERVER_DIR:-$WORK_DIR/server}"
 RUN_DIR="${RUN_DIR:-$WORK_DIR/run}"
 export CLIENT_DIR SERVER_DIR RUN_DIR

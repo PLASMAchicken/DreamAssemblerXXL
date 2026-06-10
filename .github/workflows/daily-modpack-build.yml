@@ -245,8 +245,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          curl -sSL -o prism-bootstrap https://github.com/MalTeeez/prism-bootstrap/releases/download/1.0.1/prism-bootstrap-1.0.1-x86_64-unknown-linux-gnu
-          echo "3ea7f72289dd3ea95f0b871c8cd021730a5a28a75c4f199c18f4cf308f4f3e0f  prism-bootstrap" | sha256sum -c -
+          curl -sSL -o prism-bootstrap https://github.com/MalTeeez/prism-bootstrap/releases/download/1.0.2/prism-bootstrap-1.0.2-x86_64-unknown-linux-gnu
+          echo "c9701ac81478b808a9bd13a2290e12398cc139a0a40468081e8c4b00aabdc893  prism-bootstrap" | sha256sum -c -
           chmod +x prism-bootstrap && mv prism-bootstrap /usr/local/bin/
 
       - name: Install client
@@ -292,19 +292,19 @@ jobs:
       - name: Upload client recording
         id: upload-video
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: test-java${{ matrix.java-version }}
-          path: ${{ env.WORK_DIR }}/rundir/client.mp4
+          path: ${{ env.WORK_DIR }}/run/client.mp4
           if-no-files-found: ignore
 
       - name: Upload client screenshots
         id: upload-screenshots
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: screenshots-java${{ matrix.java-version }}
-          path: ${{ env.WORK_DIR }}/rundir/screenshot.*.png
+          path: ${{ env.WORK_DIR }}/run/screenshot.*.png
           if-no-files-found: ignore
 
       - name: Upload test job summary
@@ -323,7 +323,7 @@ jobs:
           for stage in "mainMenu:Main menu" "serverLoaded:Joined server" "worldLoaded:Joined singleplayer"; do
             marker="${stage%%:*}"
             label="${stage#*:}"
-            if [ -f "$WORK_DIR/rundir/screenshot.$marker.png" ] && [ -n "$SCREENSHOTS_URL" ]; then
+            if [ -f "$WORK_DIR/run/screenshot.$marker.png" ] && [ -n "$SCREENSHOTS_URL" ]; then
               echo "| $label | [+ screenshot]($SCREENSHOTS_URL) |" >> "$GITHUB_STEP_SUMMARY"
             else
               echo "| $label | - |" >> "$GITHUB_STEP_SUMMARY"

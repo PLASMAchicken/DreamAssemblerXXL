@@ -218,10 +218,10 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p ${{ env.WORK_DIR }}/server
-          unzip -o "GTNH-daily-${{ needs.build.outputs.today }}-${{ matrix.server-zip-variant }}.zip" -d ${{ env.WORK_DIR }}/server
+          unzip -q -o "GTNH-daily-${{ needs.build.outputs.today }}-${{ matrix.server-zip-variant }}.zip" -d ${{ env.WORK_DIR }}/server
           chmod -R u+rX ${{ env.WORK_DIR }}/server
           mkdir -p ${{ env.WORK_DIR }}/client
-          unzip -o "GTNH-daily-${{ needs.build.outputs.today }}-${{ matrix.client-zip-variant }}.zip" -d /tmp/client-unpacked
+          unzip -q -o "GTNH-daily-${{ needs.build.outputs.today }}-${{ matrix.client-zip-variant }}.zip" -d /tmp/client-unpacked
           inner_dir=$(find /tmp/client-unpacked -mindepth 1 -maxdepth 1 -type d | head -n1)
           chmod -R u+rX "$inner_dir"
           cp -r "$inner_dir/." ${{ env.WORK_DIR }}/client

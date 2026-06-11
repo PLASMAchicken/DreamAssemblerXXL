@@ -117,18 +117,22 @@ jobs:
           echo "# GTNH Daily build ${{ steps.date.outputs.today }}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
-          echo "## Github mods" >> "$GITHUB_STEP_SUMMARY"
+          echo "<details><summary><b>Github mods</b></summary>" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Mod | Version | Side |" >> "$GITHUB_STEP_SUMMARY"
           echo "| --- | ------- | ---- |" >> "$GITHUB_STEP_SUMMARY"
           jq -r '.github_mods | keys[] as $k | ["", $k, .[$k].version, .[$k].side, ""] | join(" | ") | ltrimstr(" ")' releases/manifests/daily.json | sort >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "</details>" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
 
-          echo "## External mods" >> "$GITHUB_STEP_SUMMARY"
+          echo "<details><summary><b>External mods</b></summary>" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Mod | Version | Side |" >> "$GITHUB_STEP_SUMMARY"
           echo "| --- | ------- | ---- |" >> "$GITHUB_STEP_SUMMARY"
           jq -r '.external_mods | keys[] as $k | ["", $k, .[$k].version, .[$k].side, ""] | join(" | ") | ltrimstr(" ")' releases/manifests/daily.json | sort >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "</details>" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Relocate built zips
         shell: bash
@@ -301,13 +305,40 @@ jobs:
           if-no-files-found: ignore
           archive: false
 
-      - name: Upload client screenshots
-        id: upload-screenshots
+      - name: Rename screenshots for upload
+        if: always()
+        shell: bash
+        run: |
+          for marker in mainmenu serverloaded worldloaded; do
+            src="$WORK_DIR/run/screenshot.$marker.png"
+            [ -f "$src" ] && mv "$src" "$WORK_DIR/run/screenshot.$marker.java${{ matrix.java-version }}.png"
+          done
+
+      - name: Upload main menu screenshot
+        id: upload-mainmenu
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: screenshots-java${{ matrix.java-version }}
-          path: ${{ env.WORK_DIR }}/run/screenshot.*.png
+          path: ${{ env.WORK_DIR }}/run/screenshot.mainmenu.java${{ matrix.java-version }}.png
+          archive: false
+          if-no-files-found: ignore
+
+      - name: Upload joined server screenshot
+        id: upload-serverloaded
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ env.WORK_DIR }}/run/screenshot.serverloaded.java${{ matrix.java-version }}.png
+          archive: false
+          if-no-files-found: ignore
+
+      - name: Upload joined singleplayer screenshot
+        id: upload-worldloaded
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ env.WORK_DIR }}/run/screenshot.worldloaded.java${{ matrix.java-version }}.png
+          archive: false
           if-no-files-found: ignore
 
       - name: Upload test job summary
@@ -315,17 +346,21 @@ jobs:
         if: success() || failure()
         continue-on-error: true
         env:
-          SCREENSHOTS_URL: ${{ steps.upload-screenshots.outputs.artifact-url }}
+          URL_mainmenu: ${{ steps.upload-mainmenu.outputs.artifact-url }}
+          URL_serverloaded: ${{ steps.upload-serverloaded.outputs.artifact-url }}
+          URL_worldloaded: ${{ steps.upload-worldloaded.outputs.artifact-url }}
           VIDEO_URL: ${{ steps.upload-video.outputs.artifact-url }}
         run: |
-          echo "## Client test stages (Java ${{ matrix.java-version }})" >> "$GITHUB_STEP_SUMMARY"
+          echo "<details open><summary><b>Client test stages (Java ${{ matrix.java-version }})</b></summary>" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Stage | Java ${{ matrix.java-version }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| ----- | ------ |" >> "$GITHUB_STEP_SUMMARY"
 
           while IFS=: read -r marker label; do
-            if [ -f "$WORK_DIR/run/screenshot.$marker.png" ] && [ -n "$SCREENSHOTS_URL" ]; then
-              echo "| $label | [:white_check_mark: screenshot]($SCREENSHOTS_URL) |" >> "$GITHUB_STEP_SUMMARY"
+            url_var="URL_$marker"
+            url="${!url_var}"
+            if [ -n "$url" ]; then
+              echo "| $label | <img src=\"$url\" alt=\"$label\" width=\"400\"> |" >> "$GITHUB_STEP_SUMMARY"
             else
               echo "| $label | :x: |" >> "$GITHUB_STEP_SUMMARY"
             fi
@@ -340,6 +375,9 @@ jobs:
           else
             echo "| Recording | :x: |" >> "$GITHUB_STEP_SUMMARY"
           fi
+
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "</details>" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Final important summary append
         shell: bash

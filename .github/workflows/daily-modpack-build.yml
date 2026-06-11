@@ -259,7 +259,7 @@ jobs:
           --xmx ${{ matrix.client-max-memory }}
           --jvm-arg "-Dheadlessnh.active=true"
           --jvm-arg "-Dheadlessnh.combined=true"
-          --jvm-arg "-Dheadlessnh.markerDir=${{ env.WORK_DIR }}/run"
+          --jvm-arg "-Dheadlessnh.markerdir=${{ env.WORK_DIR }}/run"
           --game-dir ${{ env.WORK_DIR }}/client/.minecraft
 
       - name: Add HeadlessNH to client mods
@@ -267,8 +267,8 @@ jobs:
         working-directory: ${{ env.WORK_DIR }}/client/.minecraft/mods
         run: |
           set -euo pipefail
-          curl -sSL -o headlessnh-1.0.2.jar https://github.com/MalTeeez/HeadlessNH/releases/download/1.0.2/headlessnh-1.0.2.jar
-          echo "725148571ad3332090b8f1bc286ed55dc9b6eba3bc4a2413f0c2d256c43a054b  headlessnh-1.0.2.jar" | sha256sum -c -
+          curl -sSL -o headlessnh-1.0.3.jar https://github.com/MalTeeez/HeadlessNH/releases/download/1.0.3/headlessnh-1.0.3.jar
+          echo "47a0c4deb3dd8b17a05f8151419c0a077755d70cfbc3f6f123bd2ae506347f4b  headlessnh-1.0.3.jar" | sha256sum -c -
 
       - name: Start server
         timeout-minutes: 10
@@ -323,7 +323,7 @@ jobs:
           echo "| Stage | Java ${{ matrix.java-version }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| ----- | ------ |" >> "$GITHUB_STEP_SUMMARY"
 
-          for stage in "mainMenu:Main menu" "serverLoaded:Joined server" "worldLoaded:Joined singleplayer"; do
+          for stage in "mainmenu:Main menu" "serverloaded:Joined server" "worldloaded:Joined singleplayer"; do
             marker="${stage%%:*}"
             label="${stage#*:}"
             if [ -f "$WORK_DIR/run/screenshot.$marker.png" ] && [ -n "$SCREENSHOTS_URL" ]; then

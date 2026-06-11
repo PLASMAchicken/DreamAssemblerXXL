@@ -16,9 +16,9 @@ export CLIENT_DIR SERVER_DIR RUN_DIR
 
 SERVER_READY_FLAG="$RUN_DIR/server.ready"
 SERVER_EXIT_FLAG="$RUN_DIR/server.exit"
-CLIENT_LOADED_FLAG="$RUN_DIR/headlessnh.marker.mainMenu"
-CLIENT_JOINED_FLAG="$RUN_DIR/headlessnh.marker.serverLoaded"
-CLIENT_SINGLEP_FLAG="$RUN_DIR/headlessnh.marker.worldLoaded"
+CLIENT_LOADED_FLAG="$RUN_DIR/headlessnh.marker.mainmenu"
+CLIENT_JOINED_FLAG="$RUN_DIR/headlessnh.marker.serverloaded"
+CLIENT_SINGLEP_FLAG="$RUN_DIR/headlessnh.marker.worldloaded"
 export SERVER_READY_FLAG SERVER_EXIT_FLAG CLIENT_LOADED_FLAG CLIENT_JOINED_FLAG CLIENT_SINGLEP_FLAG
 
 SERVER_STOP_TIMEOUT="${SERVER_STOP_TIMEOUT:-20}"

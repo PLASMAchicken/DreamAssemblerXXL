@@ -34,6 +34,8 @@ start() {
   sed -i 's|eula=false|eula=true|g' eula.txt
   sed -i "s|enable-rcon=false|enable-rcon=true\nrcon.password=${RCON_PASSWORD}\nrcon.port=${RCON_PORT}|" server.properties
   sed -i 's|online-mode=true|online-mode=false|' server.properties
+  sed -i 's|white-list=true|white-list=false|' server.properties
+  
 
   # Backgrounded and logged to a file so this CI step can finish while the JVM
   # keeps running into the next steps.

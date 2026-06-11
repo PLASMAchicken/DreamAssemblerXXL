@@ -36,7 +36,7 @@ jobs:
       # load cached venv if cache exists
       - name: Load cached venv
         id: cached-poetry-dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: .venv
           key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('poetry.lock', '*/poetry.lock') }}
@@ -59,7 +59,7 @@ jobs:
 
       - name: Load cached mod zips
         id: load_mod_cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v5
         with:
           path: cache
           key: daxxl-daily-${{ runner.os }}-${{ steps.date.outputs.cachedate }}
@@ -75,7 +75,7 @@ jobs:
           poetry run python -m gtnh.cli.assemble_daily
 
       - name: Save cached mod zips
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v5
         if: steps.load_mod_cache.outputs.cache-hit != 'true'
         with:
           path: cache
@@ -114,7 +114,7 @@ jobs:
         if: success() || failure()
         continue-on-error: true
         run: |
-          echo "# GTNH Daily build ${{ steps.date.outputs.today }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "## GTNH Daily build ${{ steps.date.outputs.today }}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
 
           echo "<details><summary><b>Github mods</b></summary>" >> "$GITHUB_STEP_SUMMARY"
@@ -303,6 +303,7 @@ jobs:
           name: test-java${{ matrix.java-version }}
           path: ${{ env.WORK_DIR }}/run/client.mp4
           if-no-files-found: ignore
+          retention-days: 30
           archive: false
 
       - name: Rename screenshots for upload
@@ -321,6 +322,7 @@ jobs:
         with:
           path: ${{ env.WORK_DIR }}/run/screenshot.mainmenu.java${{ matrix.java-version }}.png
           archive: false
+          retention-days: 90
           if-no-files-found: ignore
 
       - name: Upload joined server screenshot
@@ -330,6 +332,7 @@ jobs:
         with:
           path: ${{ env.WORK_DIR }}/run/screenshot.serverloaded.java${{ matrix.java-version }}.png
           archive: false
+          retention-days: 90
           if-no-files-found: ignore
 
       - name: Upload joined singleplayer screenshot
@@ -339,6 +342,7 @@ jobs:
         with:
           path: ${{ env.WORK_DIR }}/run/screenshot.worldloaded.java${{ matrix.java-version }}.png
           archive: false
+          retention-days: 90
           if-no-files-found: ignore
 
       - name: Upload test job summary
@@ -351,7 +355,7 @@ jobs:
           URL_worldloaded: ${{ steps.upload-worldloaded.outputs.artifact-url }}
           VIDEO_URL: ${{ steps.upload-video.outputs.artifact-url }}
         run: |
-          echo "<details open><summary><b>Client test stages (Java ${{ matrix.java-version }})</b></summary>" >> "$GITHUB_STEP_SUMMARY"
+          echo "<details open><summary><b>Client test results (Java ${{ matrix.java-version }})</b></summary>" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "| Stage | Java ${{ matrix.java-version }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| ----- | ------ |" >> "$GITHUB_STEP_SUMMARY"
@@ -360,7 +364,7 @@ jobs:
             url_var="URL_$marker"
             url="${!url_var}"
             if [ -n "$url" ]; then
-              echo "| $label | <img src=\"$url\" alt=\"$label\" width=\"400\"> |" >> "$GITHUB_STEP_SUMMARY"
+              echo "| $label | ![screenshot]($url) |" >> "$GITHUB_STEP_SUMMARY"
             else
               echo "| $label | :x: |" >> "$GITHUB_STEP_SUMMARY"
             fi
@@ -371,7 +375,7 @@ jobs:
           EOF
 
           if [ -n "$VIDEO_URL" ]; then
-            echo "| Recording | [:white_check_mark: client.mp4]($VIDEO_URL) |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Recording | [:white_check_mark: recording]($VIDEO_URL) |" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "| Recording | :x: |" >> "$GITHUB_STEP_SUMMARY"
           fi
@@ -384,6 +388,7 @@ jobs:
         if: success()
         run: |
           ":shipit:" >> "$GITHUB_STEP_SUMMARY"
+
 
   upload:
     needs: [build, test]

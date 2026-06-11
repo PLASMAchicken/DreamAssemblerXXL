@@ -12,6 +12,7 @@ CLIENT_MC_DIR="${CLIENT_MC_DIR:?CLIENT_MC_DIR must be set}"
 
 CLIENT_LOG="$RUN_DIR/client.log"
 CLIENT_EXIT_FLAG="$RUN_DIR/client.exit"
+CLIENT_KILLED_FLAG="$RUN_DIR/client.killed"
 
 rc=0
 
@@ -22,7 +23,14 @@ else
   exit_code=missing
 fi
 echo "client exit code: $exit_code"
-[ "$exit_code" = "0" ] || rc=1
+
+# 137/143 are fine only when we signalled the game itself, i.e.
+# the client wouldn't close nicely, otherwise a non-zero code is a failure.
+case "$exit_code" in
+  0) ;;
+  137|143) [ -e "$CLIENT_KILLED_FLAG" ] || rc=1 ;;
+  *) rc=1 ;;
+esac
 
 # Progress markers dropped by HeadlessNH as the client reaches each stage
 for marker in "$CLIENT_LOADED_FLAG" "$CLIENT_JOINED_FLAG" "$CLIENT_SINGLEP_FLAG"; do

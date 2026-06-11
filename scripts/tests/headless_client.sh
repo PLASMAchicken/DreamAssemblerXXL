@@ -22,6 +22,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 CLIENT_LOG="$RUN_DIR/client.log"
 CLIENT_EXIT_FLAG="$RUN_DIR/client.exit"
+CLIENT_KILLED_FLAG="$RUN_DIR/client.killed"
 CLIENT_VIDEO="$RUN_DIR/client.mp4"
 XVFB_LOG="$RUN_DIR/xvfb.log"
 
@@ -100,7 +101,7 @@ echo "Xvfb up on :$DISPLAY_NUM"
 ffmpeg -nostdin -loglevel warning -y \
   -f x11grab -draw_mouse 0 -framerate "$RECORD_FPS" -video_size "$RECORD_RESOLUTION" -i "$DISPLAY" \
   -vf "drawtext=fontfile=$RECORD_FONT:text='%{localtime\:%F %T}':x=10:y=10:fontsize=24:fontcolor=white:box=1:boxcolor=black@0.6:boxborderw=8" \
-  -t "$RECORD_MAX_SECONDS" -c:v libx264 -pix_fmt yuv420p -g 1 -r "$RECORD_FPS" \
+  -t "$RECORD_MAX_SECONDS" -c:v libx264 -pix_fmt yuv420p -g 10 -r "$RECORD_FPS" \
   -movflags +frag_keyframe+empty_moov+default_base_moof -f mp4 "$CLIENT_VIDEO" &
 FFMPEG_PID=$!
 sleep 2
@@ -164,6 +165,8 @@ if kill -0 -- "-$GAME_PGID" 2>/dev/null; then
     sleep 0.5
   done
   if kill -0 -- "-$GAME_PGID" 2>/dev/null; then
+    # game ignored the nice close; record that the exit code is ours to own
+    : > "$CLIENT_KILLED_FLAG"
     kill -TERM -- "-$GAME_PGID" 2>/dev/null
     for _ in $(seq 1 20); do
       kill -0 -- "-$GAME_PGID" 2>/dev/null || break

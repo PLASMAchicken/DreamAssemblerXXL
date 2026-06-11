@@ -267,8 +267,8 @@ jobs:
         working-directory: ${{ env.WORK_DIR }}/client/.minecraft/mods
         run: |
           set -euo pipefail
-          curl -sSL -o headlessnh-1.0.3.jar https://github.com/MalTeeez/HeadlessNH/releases/download/1.0.3/headlessnh-1.0.3.jar
-          echo "47a0c4deb3dd8b17a05f8151419c0a077755d70cfbc3f6f123bd2ae506347f4b  headlessnh-1.0.3.jar" | sha256sum -c -
+          curl -sSL -o headlessnh-1.0.4.jar https://github.com/MalTeeez/HeadlessNH/releases/download/1.0.4/headlessnh-1.0.4.jar
+          echo "966043a743ec6a39a60fd9dd8a9a216c93a500bce905592f51bd2e3af8ff290a  headlessnh-1.0.4.jar" | sha256sum -c -
 
       - name: Start server
         timeout-minutes: 10
@@ -323,22 +323,29 @@ jobs:
           echo "| Stage | Java ${{ matrix.java-version }} |" >> "$GITHUB_STEP_SUMMARY"
           echo "| ----- | ------ |" >> "$GITHUB_STEP_SUMMARY"
 
-          for stage in "mainmenu:Main menu" "serverloaded:Joined server" "worldloaded:Joined singleplayer"; do
-            marker="${stage%%:*}"
-            label="${stage#*:}"
+          while IFS=: read -r marker label; do
             if [ -f "$WORK_DIR/run/screenshot.$marker.png" ] && [ -n "$SCREENSHOTS_URL" ]; then
-              echo "| $label | [+ screenshot]($SCREENSHOTS_URL) |" >> "$GITHUB_STEP_SUMMARY"
+              echo "| $label | [:white_check_mark: screenshot]($SCREENSHOTS_URL) |" >> "$GITHUB_STEP_SUMMARY"
             else
-              echo "| $label | - |" >> "$GITHUB_STEP_SUMMARY"
+              echo "| $label | :x: |" >> "$GITHUB_STEP_SUMMARY"
             fi
-          done
+          done <<'EOF'
+          mainmenu:Main menu
+          serverloaded:Joined server
+          worldloaded:Joined singleplayer
+          EOF
 
           if [ -n "$VIDEO_URL" ]; then
-            echo "| Recording | [+ client.mp4]($VIDEO_URL) |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Recording | [:white_check_mark: client.mp4]($VIDEO_URL) |" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "| Recording | - |" >> "$GITHUB_STEP_SUMMARY"
+            echo "| Recording | :x: |" >> "$GITHUB_STEP_SUMMARY"
           fi
 
+      - name: Final important summary append
+        shell: bash
+        if: success()
+        run: |
+          ":shipit:" >> "$GITHUB_STEP_SUMMARY"
 
   upload:
     needs: [build, test]

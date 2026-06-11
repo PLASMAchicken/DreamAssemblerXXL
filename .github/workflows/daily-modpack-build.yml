@@ -271,8 +271,8 @@ jobs:
         working-directory: ${{ env.WORK_DIR }}/client/.minecraft/mods
         run: |
           set -euo pipefail
-          curl -sSL -o headlessnh-1.0.4.jar https://github.com/MalTeeez/HeadlessNH/releases/download/1.0.4/headlessnh-1.0.4.jar
-          echo "966043a743ec6a39a60fd9dd8a9a216c93a500bce905592f51bd2e3af8ff290a  headlessnh-1.0.4.jar" | sha256sum -c -
+          curl -sSL -o headlessnh-1.0.5.jar https://github.com/MalTeeez/HeadlessNH/releases/download/1.0.5/headlessnh-1.0.5.jar
+          echo "5828f3e6ebf394050ef03102ff160edb3f2ef582a1252f3faecc446608d07ab5  headlessnh-1.0.5.jar" | sha256sum -c -
 
       - name: Start server
         timeout-minutes: 10
@@ -306,54 +306,54 @@ jobs:
           retention-days: 30
           archive: false
 
-      - name: Rename screenshots for upload
+      # GH markdown seems to only embed media from CSP-allowlisted domains, which does not include artifacts.
+      # Release asset URLs redirect to release-assets.githubusercontent.com (which is allowed), 
+      # so we use a rolling prerelease as the media host for the summary embeds.
+      - name: Publish screenshots to rolling release
+        id: publish-media
         if: always()
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.NIGHTLY_GITHUB_TOKEN }}
+          TODAY: ${{ needs.build.outputs.today }}
+          TAG: daily-screenshots
         run: |
+          set -uo pipefail
+          gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
+            gh release create "$TAG" -R "$GITHUB_REPOSITORY" --prerelease \
+              --title "Daily test screenshots" \
+              --notes "Storage for the screenshots embedded in daily test run summaries. Not an actual release." || true
+
+          build_id="${TODAY//+/-}"
           for marker in mainmenu serverloaded worldloaded; do
             src="$WORK_DIR/run/screenshot.$marker.png"
-            [ -f "$src" ] && mv "$src" "$WORK_DIR/run/screenshot.$marker.java${{ matrix.java-version }}.png"
+            [ -f "$src" ] || continue
+            asset="$build_id-java${{ matrix.java-version }}-$marker.png"
+            cp "$src" "/tmp/$asset"
+            if gh release upload "$TAG" "/tmp/$asset" -R "$GITHUB_REPOSITORY" --clobber; then
+              echo "url_$marker=https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$asset" >> "$GITHUB_OUTPUT"
+            fi
           done
 
-      - name: Upload main menu screenshot
-        id: upload-mainmenu
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          path: ${{ env.WORK_DIR }}/run/screenshot.mainmenu.java${{ matrix.java-version }}.png
-          archive: false
-          retention-days: 90
-          if-no-files-found: ignore
-
-      - name: Upload joined server screenshot
-        id: upload-serverloaded
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          path: ${{ env.WORK_DIR }}/run/screenshot.serverloaded.java${{ matrix.java-version }}.png
-          archive: false
-          retention-days: 90
-          if-no-files-found: ignore
-
-      - name: Upload joined singleplayer screenshot
-        id: upload-worldloaded
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          path: ${{ env.WORK_DIR }}/run/screenshot.worldloaded.java${{ matrix.java-version }}.png
-          archive: false
-          retention-days: 90
-          if-no-files-found: ignore
+          video="$WORK_DIR/run/client.mp4"
+          if [ -f "$video" ]; then
+            asset="$build_id-java${{ matrix.java-version }}-client.mp4"
+            cp "$video" "/tmp/$asset"
+            if gh release upload "$TAG" "/tmp/$asset" -R "$GITHUB_REPOSITORY" --clobber; then
+              echo "url_video=https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$asset" >> "$GITHUB_OUTPUT"
+            fi
+          fi
 
       - name: Upload test job summary
         shell: bash
         if: success() || failure()
         continue-on-error: true
         env:
-          URL_mainmenu: ${{ steps.upload-mainmenu.outputs.artifact-url }}
-          URL_serverloaded: ${{ steps.upload-serverloaded.outputs.artifact-url }}
-          URL_worldloaded: ${{ steps.upload-worldloaded.outputs.artifact-url }}
+          URL_mainmenu: ${{ steps.publish-media.outputs.url_mainmenu }}
+          URL_serverloaded: ${{ steps.publish-media.outputs.url_serverloaded }}
+          URL_worldloaded: ${{ steps.publish-media.outputs.url_worldloaded }}
           VIDEO_URL: ${{ steps.upload-video.outputs.artifact-url }}
+          VIDEO_RELEASE_URL: ${{ steps.publish-media.outputs.url_video }}
         run: |
           echo "<details open><summary><b>Client test results (Java ${{ matrix.java-version }})</b></summary>" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
@@ -378,6 +378,14 @@ jobs:
             echo "| Recording | [:white_check_mark: recording]($VIDEO_URL) |" >> "$GITHUB_STEP_SUMMARY"
           else
             echo "| Recording | :x: |" >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+          # A bare video URL on its own line seems to be the only form GitHub may turn
+          # into an inline player - wrapping it in anything breaks that
+          # see https://github.com/george-hawkins/video-in-github-markdown
+          if [ -n "$VIDEO_RELEASE_URL" ]; then
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "$VIDEO_RELEASE_URL" >> "$GITHUB_STEP_SUMMARY"
           fi
 
           echo "" >> "$GITHUB_STEP_SUMMARY"

@@ -174,6 +174,7 @@ jobs:
     permissions:
       contents: write # publish release
     strategy:
+      fail-fast: false
       matrix:
         include:
           - java-version: 25
@@ -278,8 +279,8 @@ jobs:
         working-directory: ${{ env.WORK_DIR }}/client/.minecraft/mods
         run: |
           set -euo pipefail
-          curl -sSL -o headlessnh-1.0.7.jar https://github.com/MalTeeez/HeadlessNH/releases/download/1.0.7/headlessnh-1.0.7.jar
-          echo "5e9d82a2b364effdc9f508c4b6c8b116e4f36a93e2f7b6e40685ca4528c91d68  headlessnh-1.0.7.jar" | sha256sum -c -
+          curl -sSL -o headlessnh-1.0.8.jar https://github.com/MalTeeez/HeadlessNH/releases/download/1.0.8/headlessnh-1.0.8.jar
+          echo "a6ca650bdf6fd308432a9e6b6414e018b34ad603ab6665a851a339a6f60873cc  headlessnh-1.0.8.jar" | sha256sum -c -
 
       - name: Start server
         timeout-minutes: 10
@@ -301,15 +302,6 @@ jobs:
       - name: Verify client
         if: always()
         run: bash scripts/tests/orchestrator.sh verify-client
-
-      - name: Upload CPU usage log
-        if: always()
-        uses: actions/upload-artifact@v7
-        with:
-          name: cpu-usage-java${{ matrix.java-version }}
-          path: ${{ env.WORK_DIR }}/run/cpu.log
-          if-no-files-found: warn
-          retention-days: 1
 
       # GH markdown seems to only embed media from CSP-allowlisted domains, which does not include artifacts.
       # Release asset URLs redirect to release-assets.githubusercontent.com (which is allowed), 
@@ -345,6 +337,7 @@ jobs:
             if gh release upload "$TAG" "/tmp/$asset" -R "$GITHUB_REPOSITORY" --clobber; then
               echo "url_video=https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$asset" >> "$GITHUB_OUTPUT"
             fi
+          fi
 
       - name: Upload test job summary
         shell: bash

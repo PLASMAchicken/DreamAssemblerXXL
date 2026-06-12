@@ -25,7 +25,6 @@ CLIENT_EXIT_FLAG="$RUN_DIR/client.exit"
 CLIENT_KILLED_FLAG="$RUN_DIR/client.killed"
 CLIENT_VIDEO="$RUN_DIR/client.mp4"
 XVFB_LOG="$RUN_DIR/xvfb.log"
-CPU_LOG="$RUN_DIR/cpu.log"
 
 CLIENT_LAUNCH_ENV="${CLIENT_LAUNCH_ENV:-$CLIENT_DIR/launch.env}"
 CLIENT_LAUNCH_ARGV="${CLIENT_LAUNCH_ARGV:-$CLIENT_DIR/launch.argv}"
@@ -39,7 +38,6 @@ RECORD_DEPTH=24
 RECORD_FPS="${RECORD_FPS:-5}"
 RECORD_MAX_SECONDS="${RECORD_MAX_SECONDS:-590}"     # hard cap on recording length
 RECORD_FONT="${RECORD_FONT:-/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf}"
-CPU_SAMPLE_INTERVAL="${CPU_SAMPLE_INTERVAL:-5}"
 
 [ -f "$CLIENT_LAUNCH_ENV" ]  || { echo "launch env file missing: $CLIENT_LAUNCH_ENV"; exit 1; }
 [ -f "$CLIENT_LAUNCH_ARGV" ] || { echo "launch argv file missing: $CLIENT_LAUNCH_ARGV"; exit 1; }
@@ -48,34 +46,12 @@ FFMPEG_PID=""
 GAME_PGID=""
 XVFB_PID=""
 TAIL_PID=""
-CPU_SAMPLER_PID=""
 
 stop_ffmpeg() {
   if [ -n "$FFMPEG_PID" ] && kill -0 "$FFMPEG_PID" 2>/dev/null; then
     kill -INT "$FFMPEG_PID" 2>/dev/null
     wait "$FFMPEG_PID" 2>/dev/null
   fi
-}
-
-# sample cpu
-sample_cpu() {
-  while true; do
-    {
-      printf '\n===== %s  loadavg:%s =====\n' \
-        "$(date '+%F %T')" "$(cut -d' ' -f1-3 /proc/loadavg)"
-      top -bn2 -d0.5 -w512 -o '%CPU' 2>/dev/null | awk '
-        /%Cpu/                              { cpu = $0 }
-        /^ *PID /                           { hdr = 1; n = 0; next }
-        hdr && n < 6 && $1 ~ /^[0-9]+$/     { rows[n++] = $0 }
-        END { print cpu; for (i = 0; i < n; i++) print rows[i] }'
-    } >> "$CPU_LOG" 2>&1
-    sleep "$CPU_SAMPLE_INTERVAL"
-  done
-}
-
-stop_cpu_sampler() {
-  [ -n "$CPU_SAMPLER_PID" ] && kill "$CPU_SAMPLER_PID" 2>/dev/null
-  CPU_SAMPLER_PID=""
 }
 
 # Ask the window to close the way clicking the X would. Works with no window
@@ -101,7 +77,6 @@ PY
 cleanup() {
   [ -n "$GAME_PGID" ] && kill -TERM -- "-$GAME_PGID" 2>/dev/null
   stop_ffmpeg
-  stop_cpu_sampler
   [ -n "$XVFB_PID" ] && kill -TERM "$XVFB_PID" 2>/dev/null
   [ -n "$TAIL_PID" ] && kill "$TAIL_PID" 2>/dev/null
 }
@@ -137,15 +112,10 @@ else
   echo "recording -> $CLIENT_VIDEO"
 fi
 
-# 2b. sample CPU usage for the whole run (covers ffmpeg + the game).
-: > "$CPU_LOG"
-sample_cpu &
-CPU_SAMPLER_PID=$!
-echo "cpu sampler started (every ${CPU_SAMPLE_INTERVAL}s) -> $CPU_LOG"
-
 # 3. launch the game in its own process group so a single signal cleans up everything. 
 #    run_with_exit.sh records the game's code to client.exit
 cd "$CLIENT_MC_DIR"
+echo "maxFps:10" >> options.txt
 setsid bash "$SCRIPT_DIR/run_with_exit.sh" "$CLIENT_EXIT_FLAG" \
   bash -c 'env $(grep -v "^\s*#" "$1" | xargs) "$(head -1 "$2")" @<(tail -n +2 "$2")' \
   _ "$CLIENT_LAUNCH_ENV" "$CLIENT_LAUNCH_ARGV" \
@@ -209,7 +179,6 @@ fi
 echo "game closed"
 
 # 6. finish the recording while the screen still exists, then tear it down
-stop_cpu_sampler
 stop_ffmpeg
 kill -TERM "$XVFB_PID" 2>/dev/null
 for _ in $(seq 1 10); do

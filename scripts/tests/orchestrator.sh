@@ -37,8 +37,6 @@ watch_markers() {
       if [ -e "$m" ] && [ -z "${seen[$m]:-}" ]; then
         seen[$m]=1
         name="$(basename "$m" | cut -d. -f2)"
-        # give the screen some time to update
-        sleep 0.5
         if scrot -o "$RUN_DIR/screenshot.$name.png" 2>/dev/null; then
           echo "marker '$name' appeared -- saved screenshot.$name.png"
         else

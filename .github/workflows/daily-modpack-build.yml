@@ -171,6 +171,8 @@ jobs:
   test:
     needs: build
     runs-on: ubuntu-24.04
+    permissions:
+      contents: write # publish release
     strategy:
       matrix:
         include:
@@ -197,6 +199,7 @@ jobs:
       SERVER_SETTLE_DURATION: ${{ matrix.server-settle-time }}
       RCON_PASSWORD: whoahaplaintextpassword
       CLIENT_WINDOW_NAME: "GT New Horizons"
+      CLIENT_FOCUS_TIMEOUT: 180
 
     steps:
       - name: Check out repository for scripts
@@ -264,6 +267,10 @@ jobs:
           --jvm-arg "-Dheadlessnh.active=true"
           --jvm-arg "-Dheadlessnh.combined=true"
           --jvm-arg "-Dheadlessnh.markerdir=${{ env.WORK_DIR }}/run"
+          --jvm-arg "-Dheadlessnh.delay.cooldown=2500"
+          --jvm-arg "-Dheadlessnh.delay.mainmenu=7500"
+          --jvm-arg "-Dheadlessnh.delay.serverjoin=10000"
+          --jvm-arg "-Dheadlessnh.delay.singleplayer=10000"
           --game-dir ${{ env.WORK_DIR }}/client/.minecraft
 
       - name: Add HeadlessNH to client mods
@@ -271,8 +278,8 @@ jobs:
         working-directory: ${{ env.WORK_DIR }}/client/.minecraft/mods
         run: |
           set -euo pipefail
-          curl -sSL -o headlessnh-1.0.6.jar https://github.com/MalTeeez/HeadlessNH/releases/download/1.0.6/headlessnh-1.0.6.jar
-          echo "df1d0e0f84cc99e38919f9745a5dd1a0a9af7d56ae1ad6d4cacba5d0b77f9ff0  headlessnh-1.0.6.jar" | sha256sum -c -
+          curl -sSL -o headlessnh-1.0.7.jar https://github.com/MalTeeez/HeadlessNH/releases/download/1.0.7/headlessnh-1.0.7.jar
+          echo "5e9d82a2b364effdc9f508c4b6c8b116e4f36a93e2f7b6e40685ca4528c91d68  headlessnh-1.0.7.jar" | sha256sum -c -
 
       - name: Start server
         timeout-minutes: 10
@@ -295,6 +302,15 @@ jobs:
         if: always()
         run: bash scripts/tests/orchestrator.sh verify-client
 
+      - name: Upload CPU usage log
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: cpu-usage-java${{ matrix.java-version }}
+          path: ${{ env.WORK_DIR }}/run/cpu.log
+          if-no-files-found: warn
+          retention-days: 1
+
       # GH markdown seems to only embed media from CSP-allowlisted domains, which does not include artifacts.
       # Release asset URLs redirect to release-assets.githubusercontent.com (which is allowed), 
       # so we use a rolling prerelease as the media host for the summary embeds.
@@ -303,8 +319,7 @@ jobs:
         if: always()
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.NIGHTLY_GITHUB_TOKEN }}
-          TODAY: ${{ needs.build.outputs.today }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: daily-screenshots
         run: |
           set -uo pipefail
@@ -313,11 +328,10 @@ jobs:
               --title "Daily test screenshots" \
               --notes "Storage for the screenshots embedded in daily test run summaries. Not an actual release." || true
 
-          build_id="${TODAY//+/-}"
           for marker in mainmenu serverloaded worldloaded; do
             src="$WORK_DIR/run/screenshot.$marker.png"
             [ -f "$src" ] || continue
-            asset="$build_id-java${{ matrix.java-version }}-$marker.png"
+            asset="java${{ matrix.java-version }}-$marker.png"
             cp "$src" "/tmp/$asset"
             if gh release upload "$TAG" "/tmp/$asset" -R "$GITHUB_REPOSITORY" --clobber; then
               echo "url_$marker=https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$asset" >> "$GITHUB_OUTPUT"
@@ -326,33 +340,11 @@ jobs:
 
           video="$WORK_DIR/run/client.mp4"
           if [ -f "$video" ]; then
-            asset="$build_id-java${{ matrix.java-version }}-client.mp4"
+            asset="java${{ matrix.java-version }}-client.mp4"
             cp "$video" "/tmp/$asset"
             if gh release upload "$TAG" "/tmp/$asset" -R "$GITHUB_REPOSITORY" --clobber; then
               echo "url_video=https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$asset" >> "$GITHUB_OUTPUT"
             fi
-
-            # test some animated image formats
-            webp_asset="$build_id-java${{ matrix.java-version }}-client.webp"
-            if ffmpeg -nostdin -y -loglevel warning -i "$video" \
-                 -an -c:v libwebp -loop 0 -q:v 70 -preset picture "/tmp/$webp_asset"; then
-              if gh release upload "$TAG" "/tmp/$webp_asset" -R "$GITHUB_REPOSITORY" --clobber; then
-                echo "url_video_webp=https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$webp_asset" >> "$GITHUB_OUTPUT"
-              fi
-            else
-              echo "WARNING: webp conversion failed; skipping"
-            fi
-
-            avif_asset="$build_id-java${{ matrix.java-version }}-client.avif"
-            if ffmpeg -nostdin -y -loglevel warning -i "$video" \
-                 -an -c:v libsvtav1 -crf 38 -preset 8 "/tmp/$avif_asset"; then
-              if gh release upload "$TAG" "/tmp/$avif_asset" -R "$GITHUB_REPOSITORY" --clobber; then
-                echo "url_video_avif=https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$avif_asset" >> "$GITHUB_OUTPUT"
-              fi
-            else
-              echo "WARNING: avif conversion failed; skipping"
-            fi
-          fi
 
       - name: Upload test job summary
         shell: bash
@@ -363,8 +355,6 @@ jobs:
           URL_serverloaded: ${{ steps.publish-media.outputs.url_serverloaded }}
           URL_worldloaded: ${{ steps.publish-media.outputs.url_worldloaded }}
           VIDEO_RELEASE_URL: ${{ steps.publish-media.outputs.url_video }}
-          VIDEO_WEBP_URL: ${{ steps.publish-media.outputs.url_video_webp }}
-          VIDEO_AVIF_URL: ${{ steps.publish-media.outputs.url_video_avif }}
         run: |
           echo "<details open><summary><b>Client test results (Java ${{ matrix.java-version }})</b></summary>" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
@@ -391,27 +381,6 @@ jobs:
             echo "| Recording | :x: |" >> "$GITHUB_STEP_SUMMARY"
           fi
 
-          # Testing: animated WebP/AVIF should render inline as images (mp4 cannot).
-          if [ -n "$VIDEO_WEBP_URL" ]; then
-            echo "| Recording (WebP) | ![webp recording]($VIDEO_WEBP_URL) |" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "| Recording (WebP) | :x: |" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-          if [ -n "$VIDEO_AVIF_URL" ]; then
-            echo "| Recording (AVIF) | ![avif recording]($VIDEO_AVIF_URL) |" >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "| Recording (AVIF) | :x: |" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
-          # A bare video URL on its own line seems to be the only form GitHub may turn
-          # into an inline player - wrapping it in anything breaks that
-          # see https://github.com/george-hawkins/video-in-github-markdown
-          if [ -n "$VIDEO_RELEASE_URL" ]; then
-            echo "" >> "$GITHUB_STEP_SUMMARY"
-            echo "$VIDEO_RELEASE_URL" >> "$GITHUB_STEP_SUMMARY"
-          fi
-
           echo "" >> "$GITHUB_STEP_SUMMARY"
           echo "</details>" >> "$GITHUB_STEP_SUMMARY"
 
@@ -419,7 +388,7 @@ jobs:
         shell: bash
         if: success()
         run: |
-          ":shipit:" >> "$GITHUB_STEP_SUMMARY"
+          echo "# :shipit:" >> "$GITHUB_STEP_SUMMARY"
 
 
   upload:

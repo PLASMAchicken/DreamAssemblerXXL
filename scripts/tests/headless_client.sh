@@ -29,7 +29,7 @@ XVFB_LOG="$RUN_DIR/xvfb.log"
 CLIENT_LAUNCH_ENV="${CLIENT_LAUNCH_ENV:-$CLIENT_DIR/launch.env}"
 CLIENT_LAUNCH_ARGV="${CLIENT_LAUNCH_ARGV:-$CLIENT_DIR/launch.argv}"
 CLIENT_WINDOW_NAME="${CLIENT_WINDOW_NAME:-Minecraft}"
-CLIENT_RUN_TIMEOUT="${CLIENT_RUN_TIMEOUT:-360}"     # force the game closed if it runs longer than this (def 6 mins)
+CLIENT_RUN_TIMEOUT="${CLIENT_RUN_TIMEOUT:-480}"     # force the game closed if it runs longer than this (def 8 mins)
 CLIENT_GRACE_TIMEOUT="${CLIENT_GRACE_TIMEOUT:-10}"  # time allowed for save & exit after a nice close (def 10 secs)
 
 DISPLAY_NUM="${DISPLAY_NUM:-99}"

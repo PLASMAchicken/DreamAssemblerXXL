@@ -13,6 +13,8 @@ CLIENT_MC_DIR="${CLIENT_MC_DIR:?CLIENT_MC_DIR must be set}"
 CLIENT_LOG="$RUN_DIR/client.log"
 CLIENT_EXIT_FLAG="$RUN_DIR/client.exit"
 CLIENT_KILLED_FLAG="$RUN_DIR/client.killed"
+DUAL_EXIT_FLAG="$RUN_DIR/dual.exit"
+DUAL_CLIENT_LOG="$RUN_DIR/dual_test_client.log"
 
 rc=0
 
@@ -40,6 +42,16 @@ for marker in "$CLIENT_LOADED_FLAG" "$CLIENT_JOINED_FLAG" "$CLIENT_SINGLEP_FLAG"
   fi
 done
 
+# Result of the dual tests run while the client was connected to the server
+if [ -e "$DUAL_EXIT_FLAG" ]; then
+  dual_exit=$(cat "$DUAL_EXIT_FLAG")
+  echo "dual test exit code: $dual_exit"
+  [ "$dual_exit" = "0" ] || rc=1
+else
+  echo "dual test exit flag missing: $DUAL_EXIT_FLAG -- dual tests never ran"
+  rc=1
+fi
+
 # Crash reports
 crash_reports=("$CLIENT_MC_DIR/crash-reports/crash"*.txt)
 if [ "${#crash_reports[@]}" -gt 0 ]; then
@@ -64,6 +76,17 @@ if [ -r "$CLIENT_LOG" ]; then
 else
   echo "client log missing or unreadable: $CLIENT_LOG"
   rc=1
+fi
+
+# Client side of what was emitted during the dual tests
+if [ -r "$DUAL_CLIENT_LOG" ]; then
+  if grep --quiet --fixed-strings 'PLACEHOLDER_CLIENT_DUAL_ERROR' "$DUAL_CLIENT_LOG"; then
+    echo "dual test client log flagged a problem:"
+    grep -n --fixed-strings 'PLACEHOLDER_CLIENT_DUAL_ERROR' "$DUAL_CLIENT_LOG"
+    rc=1
+  fi
+else
+  echo "dual test client log missing or unreadable: $DUAL_CLIENT_LOG"
 fi
 
 [ "$rc" -eq 0 ] && echo "CLIENT: pass" || echo "CLIENT: fail"

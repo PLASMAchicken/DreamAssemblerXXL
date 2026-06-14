@@ -13,6 +13,7 @@ RUN_DIR="${RUN_DIR:?RUN_DIR must be set}"
 SERVER_DIR="${SERVER_DIR:?SERVER_DIR must be set}"
 
 SERVER_LOG="$RUN_DIR/server.log"
+DUAL_SERVER_LOG="$RUN_DIR/dual_test_server.log"
 
 rc=0
 
@@ -81,6 +82,17 @@ if [ -r "$SERVER_LOG" ]; then
 else
   echo "server log missing or unreadable: $SERVER_LOG"
   rc=1
+fi
+
+# Server side of what was emitted during the dual tests
+if [ -r "$DUAL_SERVER_LOG" ]; then
+  if grep --quiet --fixed-strings 'PLACEHOLDER_SERVER_DUAL_ERROR' "$DUAL_SERVER_LOG"; then
+    echo "dual test server log flagged a problem:"
+    grep -n --fixed-strings 'PLACEHOLDER_SERVER_DUAL_ERROR' "$DUAL_SERVER_LOG"
+    rc=1
+  fi
+else
+  echo "dual test server log missing or unreadable: $DUAL_SERVER_LOG"
 fi
 
 [ "$rc" -eq 0 ] && echo "SERVER: pass" || echo "SERVER: fail"

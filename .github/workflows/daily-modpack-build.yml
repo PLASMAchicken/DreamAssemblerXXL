@@ -71,7 +71,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.NIGHTLY_GITHUB_TOKEN }}
         run: |
-          poetry run python -m gtnh.cli.generate_daily --id "$((${{ github.run_number }} + 1000))" --update-available
+          poetry run python -m gtnh.cli.generate_daily --id "$((${{ github.run_number }} + 1200))" --update-available
           poetry run python -m gtnh.cli.assemble_daily
 
       - name: Save cached mod zips
@@ -170,7 +170,7 @@ jobs:
 
   test:
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: self-hosted
     permissions:
       contents: write # publish release
     strategy:
